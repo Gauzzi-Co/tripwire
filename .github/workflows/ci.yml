@@ -19,7 +19,7 @@ jobs:
           python-version: "3.12"
       - name: Install linters
         run: |
-          python -m pip install --quiet ruff==0.16.6
+          python -m pip install --quiet -r requirements-dev.txt
           sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
       - name: ruff check + format
         run: |
@@ -46,12 +46,14 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - run: python -m pip install --quiet pytest==9.1.1
+      - run: python -m pip install --quiet -r requirements-dev.txt
       - run: pytest -q
 
   dependency-review:
     name: dependency-review
-    if: github.event_name == 'pull_request'
+    # Dependency graph (required by this action) is free only on public repositories;
+    # the job activates automatically once the repo is public.
+    if: github.event_name == 'pull_request' && !github.event.repository.private
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
