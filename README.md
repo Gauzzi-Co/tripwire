@@ -77,6 +77,9 @@ Issues and PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Found a way p
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Built by [Lucas Gauzzi](https://www.linkedin.com/in/lucasgauzzi) · Gauzzi & Co.
+- **Code** (`kit/`, `kit-pt-BR/`, `install.sh`, `tests/`): [MIT](LICENSE) — take it, improve it, keep the notice.
+- **The protocol documents** (`docs/`): [CC BY 4.0](docs/LICENSE.md) — share, translate and teach from them freely, with attribution to *Lucas Gauzzi · Gauzzi & Co*.
+
+Built by [Lucas Gauzzi](https://www.linkedin.com/in/lucasgauzzi) · Gauzzi & Co.
 
 > **Status:** private preview — public release pending final proofread.

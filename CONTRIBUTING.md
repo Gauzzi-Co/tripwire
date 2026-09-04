@@ -17,8 +17,10 @@ Thanks for helping make AI agents harder to hijack. A few house rules keep this 
 2. `pip install ruff pytest` · `ruff check . && ruff format --check .` · `pytest -q` · `shellcheck kit/*.sh kit-pt-BR/*.sh install.sh`.
 3. Open a PR describing the attack or gap the change addresses. CI runs lint, tests, dependency review and an AI review; all must be green.
 
+## Licensing of contributions
+
+By submitting a pull request you agree that code contributions are licensed under the repository's [MIT License](LICENSE) and contributions to the documents in `docs/` under [CC BY 4.0](docs/LICENSE.md) — the same terms everyone else receives them under. No CLA.
+
 ## Reporting a bypass
 
 See [SECURITY.md](SECURITY.md) — please report working bypasses privately.
-
-<!-- CI smoke test: exercises lint, tests, dependency review and the Claude review on a PR -->
