@@ -1,0 +1,11 @@
+line-length = 120
+target-version = "py39"
+
+[lint]
+# Errors, pyflakes, import order, modern-syntax upgrades. Deliberately NOT enabled:
+# BLE001 (blind except) — the hooks catch everything on purpose: they must fail closed.
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]  # regex signatures are long by nature
+
+[format]
+quote-style = "double"

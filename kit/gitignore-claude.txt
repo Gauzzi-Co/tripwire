@@ -1,0 +1,18 @@
+# ~/.claude/.gitignore — version ONLY the defense surface and the memories (tamper-evident).
+# Everything else (transcripts, caches, tokens) stays out — never push this repo to the cloud.
+*
+!.gitignore
+!settings.json
+!CLAUDE.md
+!hooks/
+!hooks/**
+!agents/
+!agents/**
+!commands/
+!commands/**
+!skills/
+!skills/**
+!projects/
+!projects/*/
+!projects/*/memory/
+!projects/*/memory/**

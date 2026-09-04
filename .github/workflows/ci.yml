@@ -1,0 +1,58 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install linters
+        run: |
+          python -m pip install --quiet ruff==0.16.6
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+      - name: ruff check + format
+        run: |
+          ruff check kit kit-pt-BR tests
+          ruff format --check kit kit-pt-BR tests
+      - name: shellcheck
+        run: shellcheck -S warning kit/*.sh kit-pt-BR/*.sh install.sh
+      - name: No literal invisible characters in source
+        run: |
+          python - <<'PY'
+          import pathlib, re, sys
+          rx = re.compile("[\u200B\u200C\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]")
+          bad = [p for d in ("kit", "kit-pt-BR", "tests") for p in pathlib.Path(d).iterdir()
+                 if p.is_file() and rx.search(p.read_text(encoding="utf-8", errors="replace"))]
+          print("files with literal invisible characters:", bad or "none")
+          sys.exit(1 if bad else 0)
+          PY
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --quiet pytest==9.1.1
+      - run: pytest -q
+
+  dependency-review:
+    name: dependency-review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
