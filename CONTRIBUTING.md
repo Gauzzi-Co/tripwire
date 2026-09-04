@@ -20,3 +20,5 @@ Thanks for helping make AI agents harder to hijack. A few house rules keep this 
 ## Reporting a bypass
 
 See [SECURITY.md](SECURITY.md) — please report working bypasses privately.
+
+<!-- CI smoke test: exercises lint, tests, dependency review and the Claude review on a PR -->
