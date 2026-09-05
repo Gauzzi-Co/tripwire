@@ -6,7 +6,7 @@ Your AI coding agent reads the web, your email, issues, READMEs and tool descrip
 
 Tripwire is what we run in our own operation at [Gauzzi & Co](https://gauzziconsulting.com), generalized so anyone can install it. It is **not** a sandbox and it does not try to detect every injection (nobody can — see [Willison's lethal trifecta](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)). It makes the common outbound and self-modifying actions *visible and approval-gated*, makes every persistent change *evident*, and treats signature detection as a bonus. Run it **on top of** a sandbox and a network egress allowlist, not instead of them.
 
-> **Read the protocol first:** [`docs/index.html`](docs/index.html) (English) · [`docs/protocolo-pt-BR.html`](docs/protocolo-pt-BR.html) (Português). It explains the attack chain, 13 documented real-world cases with primary sources, the attack surfaces and leak channels, the full scan protocol, how each hook decides — and what it deliberately does not cover.
+> **Read the protocol first:** [English](https://gauzzi-co.github.io/tripwire/) · [Português](https://gauzzi-co.github.io/tripwire/protocolo-pt-BR.html) (sources in [`docs/`](docs/)). It explains the attack chain, 13 documented real-world cases with primary sources, the attack surfaces and leak channels, the full scan protocol, how each hook decides — and what it deliberately does not cover.
 
 ## What it does
 
