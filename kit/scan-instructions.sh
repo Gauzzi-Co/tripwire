@@ -24,7 +24,7 @@ OUT_DIR="$HOME/security-scan"; mkdir -p "$OUT_DIR"
 STAMP="$(date +%Y-%m-%d_%H%M)"
 REPORT="$OUT_DIR/report-$STAMP.txt"
 LIST="$OUT_DIR/files-$STAMP.txt"
-MAXDEPTH="${SCAN_MAXDEPTH:-8}"
+MAXDEPTH="${SCAN_MAXDEPTH:-12}"
 EXCLUDE_EXTRA="${EXCLUDE_EXTRA:-__none__}"
 : > "$REPORT"; : > "$LIST"
 
@@ -47,17 +47,17 @@ PRUNE=( -path '*/node_modules' -o -path '*/.Trash' -o -path '*/Library/Caches' -
        -name 'CLAUDE.md' -o -name 'CLAUDE.local.md' -o -name 'MEMORY.md' -o -name 'HANDOFF.md' \
        -o -name 'AGENTS.md' -o -name 'GEMINI.md' -o -name '.cursorrules' -o -name '.windsurfrules' \
        -o -name 'copilot-instructions.md' -o -name 'SKILL.md' -o -name '.mcp.json' \
-       -o -name 'claude_desktop_config.json' -o \( -name '*.mdc' -path '*/.cursor/rules/*' \) \
+       -o -name 'claude_desktop_config.json' -o -path '*/.vscode/settings.json' -o -path '*/.vscode/mcp.json' -o -path '*/.cursor/mcp.json' -o -path '*/.github/instructions/*.md' -o -path '*/.github/prompts/*.md' -o -path '*/.windsurf/rules/*' -o -path '*/.gemini/settings.json' -o \( -name '*' -path '*/.git/hooks/*' -not -name '*.sample' \) -o \( -name '*.mdc' -path '*/.cursor/rules/*' \) \
        -o \( -name '*.md' -path '*/.claude/rules/*' \) \) -print 2>/dev/null
   # 2) everything inside .claude directories (global and per-project): agents, commands, skills, hooks, memory, settings
   find "$HOME/.claude" -maxdepth 6 -type f \( -name '*.md' -o -name '*.json' -o -name '*.py' -o -name '*.sh' -o -name '*.js' -o -name '*.ts' \) \
-       -not -path '*/projects/*/*.jsonl' -not -path '*/cache/*' -not -path '*/shell-snapshots/*' -not -path '*/file-history/*' \
+       -not -path '*/projects/*/*.jsonl' -not -path "$HOME/.claude/cache/*" -not -path '*/shell-snapshots/*' -not -path '*/file-history/*' \
        -not -path '*/paste-cache/*' -not -path '*/telemetry/*' -not -path '*/uploads/*' -not -path '*/sessions/*' -not -path '*/tool-results/*' -not -path '*/workflows/*' -not -path '*/subagents/*' -print 2>/dev/null
   find "$HOME" "$@" -maxdepth "$MAXDEPTH" \( "${PRUNE[@]}" \) -prune -o -type d -name '.claude' -not -path "$HOME/.claude" -print 2>/dev/null \
     | while IFS= read -r d; do find "$d" -maxdepth 4 -type f \( -name '*.md' -o -name '*.json' -o -name '*.py' -o -name '*.sh' -o -name '*.js' \) -print 2>/dev/null; done
   # 3) user-level configs
-  for f in "$HOME/.claude.json" "$HOME/.codex/config.toml" "$HOME/.codex/instructions.md" "$HOME/.gemini/settings.json" \
-           "$HOME/Library/Application Support/Claude/claude_desktop_config.json" "$APPDATA/Claude/claude_desktop_config.json"; do
+  for f in "$HOME/.claude.json" "$HOME/.codex/config.toml" "$HOME/.codex/instructions.md" "$HOME/.gemini/settings.json" "$HOME/.cursor/mcp.json" "$HOME/.codeium/windsurf/memories/global_rules.md" "$HOME/.codeium/windsurf/mcp_config.json" "$HOME/.claude/plugins/installed_plugins.json" \
+           "$HOME/Library/Application Support/Claude/claude_desktop_config.json" "${APPDATA:-}/Claude/claude_desktop_config.json"; do
     [ -f "$f" ] && printf '%s\n' "$f"
   done
 } 2>/dev/null | grep -v -E "$EXCLUDE_EXTRA" | sort -u > "$LIST"
@@ -75,69 +75,121 @@ while IFS= read -r f; do
 done < "$LIST" | sort -r | tee -a "$REPORT" >/dev/null
 log ""
 log "  ^ Recent modifications YOU don't recognize are the first signal."
+log "  (depth limit: $MAXDEPTH levels below \$HOME — deeper trees are not scanned; raise with SCAN_MAXDEPTH=16, or pass extra folders as arguments)"
 
 # ---------------------------------------------------- B. SIGNATURES + HIDDEN CONTENT
 hdr "B. PROMPT-INJECTION SIGNATURES + HIDDEN CONTENT (per file:line)"
 python3 - "$LIST" <<'PYEOF' | tee -a "$REPORT"
-import sys, re, os
+import os
+import re
+import sys
+import unicodedata
+
 files = [l.rstrip("\n") for l in open(sys.argv[1], encoding="utf-8", errors="replace") if l.strip()]
-# Signatures are bilingual (EN + PT-BR) on purpose: injections arrive in either language.
+# Signatures are bilingual (EN + PT-BR) on purpose: injections arrive in either language. They are a
+# tripwire for lazy attackers, not a detector — the fence and the gates are the control. Whitespace
+# (including line breaks) is collapsed before matching, and the text is also checked after NFKC
+# normalization (fullwidth letters), so "ignore all<newline>previous instructions" still hits.
 SIGS = [
  ("SECRECY / hide from the user",
-  re.compile(r"(never|do not|don'?t|nunca|n[ãa]o)\s+(tell|alert|inform|notify|mention|reveal|disclose|show|display|conte|avise|informe|mencione|revele|mostre)\b.{0,50}\b(user|owner|human|operator|usu[áa]rio|dono|ele|ela|voc[êe])|"
-             r"(conceal|hide|keep\s+(this|it)\s+(secret|hidden|private)|secretly|silently|without\s+(telling|informing|asking|notifying)|"
-             r"oculte|esconda|em\s+segredo|sem\s+(avisar|informar|perguntar)|n[ãa]o\s+(mencione|revele|mostre)\s+(isso|isto|esta|este))", re.I)),
+  re.compile(r"\b(never|do not|don'?t|nunca|n[ãa]o)\s+(tell|alert|inform|notify|conte|avise|informe)\s+(the\s+|o\s+|a\s+)?(user|owner|human|operator|usu[áa]rio|dono)\b|"
+             r"\b(never|do not|don'?t)\s+(mention|reveal|disclose)\s+(this|it|these\s+instructions)\s+to\s+(the\s+)?(user|owner|human)\b|"
+             r"(keep\s+(this|it)\s+(secret|hidden)\s+from\s+the\s+user|without\s+(telling|informing|notifying)\s+the\s+user|"
+             r"n[ãa]o\s+(mencione|revele|mostre)\s+(isso|isto)\s+(ao|para\s+o)\s+usu[áa]rio|sem\s+(avisar|informar)\s+o\s+usu[áa]rio)", re.I)),
  ("OVERRIDE / reframing",
-  re.compile(r"ignore\s+(all\s+|any\s+)?(previous|prior|above|earlier)|disregard\s+(all\s+)?(previous|prior)|you\s+are\s+now|new\s+instructions|"
-             r"system\s+prompt|developer\s+message|from\s+now\s+on\s+(always|never)|desconsidere\s+(as\s+)?(instru[çc][õo]es|regras)|"
-             r"ignore\s+(as\s+)?instru[çc][õo]es\s+anteriores|voc[êe]\s+agora\s+[ée]|novas\s+instru[çc][õo]es", re.I)),
+  re.compile(r"(ignore|disregard|forget)\s+(all\s+|any\s+|the\s+|your\s+)?(previous|prior|above|earlier|preceding)\s+(instructions?|rules?|guidance|prompts?)|forget\s+(all\s+)?your\s+instructions|"
+             r"\byou\s+are\s+now\s+(a|an|the|in)\b|\bnew\s+instructions\s*:|your\s+(new\s+)?system\s+prompt\s+is|from\s+now\s+on\s+(always|never)\s+\w+\s+without|"
+             r"desconsidere\s+(as\s+)?(instru[çc][õo]es|regras)|ignore\s+(as\s+)?instru[çc][õo]es\s+anteriores|voc[êe]\s+agora\s+[ée]\s+(um|uma|o|a)\b|novas\s+instru[çc][õo]es\s*:", re.I)),
  ("AUTO-APPROVAL / no permission",
-  re.compile(r"(always|automatically|sempre|automaticamente)\s+(approve|allow|accept|run|execute|aprove|permita|aceite|execute)|"
-             r"without\s+(confirmation|permission|approval)|do\s+not\s+ask\s+(for\s+)?(permission|confirmation)|"
-             r"n[ãa]o\s+pe[çc]a\s+(permiss[ãa]o|confirma[çc][ãa]o)|dangerously-skip-permissions|bypasspermissions", re.I)),
+  re.compile(r"(always|automatically|sempre|automaticamente)\s+(approve|allow|accept|permit|aprove|permita|aceite)\b|"
+             r"without\s+(asking\s+for\s+)?(confirmation|permission|approval)|do\s+not\s+ask\s+(for\s+)?(permission|confirmation)|"
+             r"n[ãa]o\s+pe[çc]a\s+(permiss[ãa]o|confirma[çc][ãa]o)|dangerously-skip-permissions|bypasspermissions|\"defaultmode\"\s*:\s*\"bypass", re.I)),
  ("EXFILTRATION / send outward",
-  re.compile(r"(send|post|upload|forward|transmit|exfil|sync|mirror|envie|poste|suba|encaminhe|transmita|sincronize)\b.{0,60}\b(to|para)\b.{0,60}(https?://|@|webhook|endpoint|server|bucket|api)|"
-             r"webhook\.site|hooks\.slack\.com|discord(app)?\.com/api/webhooks|ngrok\.(io|app|dev)|pastebin\.com|transfer\.sh|ntfy\.sh|api\.telegram\.org|requestbin|pipedream\.net|burpcollaborator|oastify\.com|interact\.sh", re.I)),
+  re.compile(r"\b(send|post|upload|forward|transmit|exfiltrate|email|envie|poste|suba|encaminhe|transmita)\b.{0,40}\b(the\s+|o\s+|a\s+|os\s+|as\s+)?(contents?|files?|\.env|env\s+file|secrets?|keys?|tokens?|credentials?|passwords?|conversation|chat\s+history|history|memory|memories|source\s+code|repo(sitory)?|conte[úu]do|arquivos?|segredos?|chaves?|senhas?|credenciais|hist[óo]rico|mem[óo]ria|c[óo]digo)\b.{0,60}\b(to|para)\b.{0,60}(https?://|@|webhook|endpoint)|"
+             r"!\[[^\]]*\]\(https?://[^)\s]*[?&][^)\s]*\)|"
+             r"webhook\.site|hooks\.slack\.com|discord(app)?\.com/api/webhooks|ngrok(-free)?\.(io|app|dev)|pastebin\.com|transfer\.sh|ntfy\.sh|api\.telegram\.org|requestbin|pipedream\.net|burpcollaborator|oastify\.com|interact\.sh|trycloudflare\.com|0x0\.st|file\.io", re.I)),
  ("SECRET HARVESTING",
-  re.compile(r"(collect|gather|read|copy|include|extract|colete|leia|copie|inclua|extraia)\b.{0,50}\b(api[_ -]?keys?|tokens?|passwords?|secrets?|credentials?|\.env\b|id_rsa|id_ed25519|private\s+key|senhas?|credenciais|chaves?\s+(de\s+)?api)", re.I)),
+  re.compile(r"(collect|gather|read|copy|include|extract|colete|leia|copie|inclua|extraia)\b.{0,50}\b(api[_ -]?keys?|tokens?|passwords?|secrets?|credentials?|\.env\b|id_rsa|id_ed25519|private\s+key|senhas?|credenciais|chaves?\s+(de\s+)?api)\b.{0,60}\b(and|then|e|depois)\s+(send|post|upload|email|envie|poste|suba)", re.I)),
  ("PERSISTENCE / write to memory",
-  re.compile(r"(remember|save|store|add|write|persist|memorize|lembre|salve|guarde|adicione|grave)\b.{0,40}\b(to|in|into|em|no|na)\b.{0,30}(memory|mem[óo]ria|CLAUDE\.md|MEMORY\.md|settings|hooks?)", re.I)),
+  re.compile(r"(remember|memorize|store|save|lembre|memorize|guarde|salve)\s+(this|that|the\s+following|these|isso|isto|o\s+seguinte)\b.{0,60}\b(memory|mem[óo]ria|CLAUDE\.md|MEMORY\.md|preferences?|prefer[êe]ncias)\b|"
+             r"(add|append|write|adicione|acrescente|escreva)\s+(this|the\s+following|these\s+instructions|isso|isto)\s+(to|into|em|no|na)\s+(your\s+)?(memory|mem[óo]ria|CLAUDE\.md|MEMORY\.md|settings)", re.I)),
  ("GUARDRAIL SABOTAGE",
-  re.compile(r"(disable|remove|delete|comment\s+out|bypass|skip|desative|remova|apague|comente|contorne|pule)\b.{0,40}\b(hooks?|guards?|guardrails?|safety|checks?|tests?|lint|verifica[çc][õo]es|seguran[çc]a)", re.I)),
- ("AI-DIRECTED IMPERATIVE",
-  re.compile(r"\b(assistant|claude|ai|agent|copilot|assistente|agente)\b[^.\n]{0,40}\b(must|should|will|deve|precisa)\s+(run|execute|send|forward|delete|download|install|approve|executar|enviar|encaminhar|apagar|baixar|instalar|aprovar)\b", re.I)),
+  re.compile(r"(disable|remove|delete|bypass|turn\s+off|comment\s+out|desative|remova|apague|contorne|desligue)\s+(the\s+|all\s+|os\s+|as\s+|o\s+|a\s+)?(hooks?|guards?|guardrails?|safety\s+(checks?|hooks?)|security\s+(hooks?|checks?)|permission\s+(prompts?|checks?)|approval|confirma[çc][õo]es|permiss[õo]es)\b", re.I)),
+ ("INSTRUCTION ADDRESSED TO THE ASSISTANT",
+  re.compile(r"\byou\s+(must|should|need\s+to|are\s+to|will|shall|have\s+to)\s+(now\s+|immediately\s+|first\s+)?(run|execute|send|forward|delete|download|open|install|approve|exfiltrate|copy)\b|"
+             r"\b(assistant|claude|agent|copilot|ai)\s*[:,]\s*(please\s+)?(run|execute|send|forward|delete|download|open|install|approve)\b|"
+             r"\b(note|instructions?|message|task)\s+(to|for)\s+the\s+(assistant|agent|ai|model)\b|"
+             r"\bvoc[êe]\s+(deve|precisa|tem\s+que)\s+(agora\s+)?(executar|rodar|enviar|encaminhar|apagar|baixar|abrir|instalar|aprovar|copiar)\b|"
+             r"\b(assistente|agente)\s*[:,]\s*(por\s+favor\s+)?(execute|rode|envie|encaminhe|apague|baixe|abra|instale|aprove)\b", re.I)),
 ]
-ZW = re.compile("[\u200B\u200C\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]")  # zero-width, bidi, BOM, soft hyphen (escapes: this file contains none of them)
-B64 = re.compile(r"[A-Za-z0-9+/]{120,}={0,2}")
-HTMLC = re.compile(r"<!--.*?-->", re.S)
-hits = 0; hidden = 0
+ZW = re.compile("[\u200B\u200C\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF\u00AD\u2028\u2029\u180E\u3164\u115F\u1160\U000E0000-\U000E007F\U000E0100-\U000E01EF]")
+EMOJI_LIKE = re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\U0001F1E6-\U0001F1FF\uFE0F\U0001F3FB-\U0001F3FF\u200D]")
+B64 = re.compile(r"(?:[A-Za-z0-9+/_-]{60,}={0,2}(?:\s*\n\s*[A-Za-z0-9+/_-]{60,}={0,2}){1,}|[A-Za-z0-9+/_-]{120,}={0,2})")
+HTMLC = re.compile(r"<!--.*?-->|\[//\]:\s*#\s*\(.*?\)|<details[^>]*>.*?</details>", re.S | re.I)
+
+
+def count_invisible(t):
+    """Invisible/bidi/tag characters, plus zero-width joiners that are NOT inside an emoji sequence."""
+    n = len(ZW.findall(t))
+    for m in re.finditer("\u200D", t):
+        b, a = t[m.start() - 1:m.start()], t[m.end():m.end() + 1]
+        if not (b and EMOJI_LIKE.match(b) and a and EMOJI_LIKE.match(a)):
+            n += 1
+    return n
+
+
+def line_of(text, pos):
+    return text.count("\n", 0, pos) + 1
+
+
+hits = 0
+hidden = 0
 for f in files:
     try:
-        if os.path.getsize(f) > 5_000_000: print(f"  [skipped >5MB] {f}"); continue
+        if os.path.getsize(f) > 5_000_000:
+            print(f"  [skipped >5MB] {f}")
+            continue
         text = open(f, encoding="utf-8", errors="replace").read()
     except Exception as e:
-        print(f"  [read error] {f}: {e}"); continue
-    for i, line in enumerate(text.splitlines(), 1):
+        print(f"  [read error] {f}: {e}")
+        continue
+    # same length as text, so match offsets map back to line numbers; line breaks no longer split a phrase
+    flat = text.replace("\n", " ").replace("\r", " ").replace("\t", " ")
+    variants = [("", flat)]
+    nfkc = unicodedata.normalize("NFKC", flat)
+    if nfkc != flat:
+        variants.append((" (after NFKC normalization)", nfkc))
+    seen = set()
+    for suffix, body in variants:
         for label, rx in SIGS:
-            m = rx.search(line)
-            if m:
+            for m in rx.finditer(body):
+                ln = line_of(text, min(m.start(), len(text) - 1)) if not suffix else "?"
+                key = (label, ln)
+                if key in seen:
+                    continue
+                seen.add(key)
                 hits += 1
-                snip = line.strip()[:220]
-                print(f"  [{label}] {f}:{i}\n      {snip}")
-    zw = ZW.findall(text)
+                snip = body[max(0, m.start() - 50):m.end() + 50].strip()[:220]
+                print(f"  [{label}] {f}:{ln}{suffix}\n      {snip}")
+    zw = count_invisible(text)
     if zw:
-        hidden += 1; print(f"  [HIDDEN: {len(zw)} invisible/bidi character(s)] {f}  <- invisible to humans, readable by the AI")
-    for m in HTMLC.finditer(text):
-        body = m.group(0)
-        if len(body) > 60 and f.lower().endswith((".md", ".mdc", ".txt")):
-            hidden += 1; print(f"  [HIDDEN: HTML comment inside markdown, {len(body)} chars] {f}\n      {body[:200].replace(chr(10),' ')}")
-    if B64.search(text) and not f.endswith((".json", ".jsonl", ".png", ".svg")):
-        hidden += 1; print(f"  [HIDDEN: long base64 blob] {f}")
-    longl = [i for i, l in enumerate(text.splitlines(), 1) if (re.search(r"[ \t]{60,}\S", l) or len(l) > 3000) and f.lower().endswith((".md", ".mdc", ".txt"))]
-    if longl:
-        hidden += 1; print(f"  [HIDDEN: line(s) with whitespace padding or >3000 chars — can hide instructions off-screen] {f}: lines {longl[:5]}")
+        hidden += 1
+        print(f"  [HIDDEN: {zw} invisible/bidi/tag character(s)] {f}  <- invisible to humans, readable by the AI")
+    if f.lower().endswith((".md", ".mdc", ".txt", ".cursorrules", ".windsurfrules")):
+        for m in HTMLC.finditer(text):
+            body = m.group(0)
+            if len(body) > 30:
+                hidden += 1
+                print(f"  [HIDDEN: HTML/markdown comment or collapsed block, {len(body)} chars] {f}:{line_of(text, m.start())}\n      {body[:200].replace(chr(10), ' ')}")
+        longl = [i for i, l in enumerate(text.splitlines(), 1) if re.search(r"[ \t]{60,}\S", l) or len(l) > 3000]
+        if longl:
+            hidden += 1
+            print(f"  [HIDDEN: line(s) with whitespace padding or >3000 chars — can hide instructions off-screen] {f}: lines {longl[:5]}")
+    if B64.search(text) and not f.endswith((".json", ".jsonl", ".png", ".svg", ".lock")):
+        hidden += 1
+        print(f"  [HIDDEN: long base64/base64url blob (possibly MIME-wrapped)] {f}")
 print(f"\n  TOTAL: {hits} textual signature(s), {hidden} hidden-content indicator(s).")
-print("  False positives are expected (e.g. a security hook QUOTES the very signatures). Review each one in Phase 2.")
+print("  False positives are expected (a security hook QUOTES the very signatures). Signatures are a tripwire for unsophisticated payloads, not a detector: judge each hit in context (Phase 2).")
 PYEOF
 
 # ----------------------------------------------------------- C. CONFIG / HOOKS / MCP
@@ -160,7 +212,9 @@ for p in settings:
     for k in ("allow", "deny", "ask"):
         v = perm.get(k) or []
         if v: print(f"    permissions.{k} ({len(v)}): " + "; ".join(map(str, v))[:900])
-    broad = [r for r in (perm.get("allow") or []) if re.search(r"Bash\(\*?\)|Bash\(\*\)|^Bash$|curl|wget|scp|rclone|\brm\b", str(r))]
+    broad = [r for r in (perm.get("allow") or []) if re.search(r"Bash\(\*?\)|Bash\(\*\)|^Bash$|Bash\((python|bash|sh|zsh|node|curl|wget|scp|rclone|rm|eval|nc)\b|^WebFetch$|^mcp__\*|mcp__[^_]+__\*", str(r))]
+    for k in ("disableAllHooks", "apiKeyHelper", "enableAllProjectMcpServers", "statusLine", "env"):
+        if k in d: print(f"    !! {k}: {json.dumps(d[k])[:300]}  <- verify you set this (env can redirect ALL traffic: ANTHROPIC_BASE_URL)")
     if broad: print(f"    !! BROAD ALLOW (review): {broad}")
     hooks = d.get("hooks", {}) if isinstance(d, dict) else {}
     for ev, entries in hooks.items():
@@ -183,7 +237,7 @@ if os.path.exists(cj):
     def show_mcp(servers, scope):
         for name, cfg in (servers or {}).items():
             tgt = cfg.get("command") or cfg.get("url") or cfg.get("httpUrl") or ""
-            args = " ".join(map(str, cfg.get("args", [])))
+            args = re.sub(r"[A-Za-z0-9_\-]{24,}", "<redacted>", " ".join(map(str, cfg.get("args", []))))
             print(f"    MCP [{scope}] {name}: {tgt} {args}"[:300])
     show_mcp(d.get("mcpServers"), "user")
     for proj, pd in (d.get("projects") or {}).items():
@@ -217,7 +271,7 @@ for f in "$HOME/.zshrc" "$HOME/.zprofile" "$HOME/.zshenv" "$HOME/.bashrc" "$HOME
   [ -f "$f" ] || continue
   mt=$(stat -f '%Sm' -t '%Y-%m-%d' "$f" 2>/dev/null || stat -c '%y' "$f" | cut -c1-10)
   log "  $f (modified $mt)"
-  grep -nE 'curl|wget|base64|eval |nc |/dev/tcp|python[3]? -c|alias claude=|claude\(\)|PROMPT_COMMAND|precmd' "$f" 2>/dev/null | sed 's/^/      /' | tee -a "$REPORT" >/dev/null
+  grep -nE 'curl|wget|base64|eval |nc |/dev/tcp|python[3]? -c|alias claude=|claude\(\)|PROMPT_COMMAND|precmd|ANTHROPIC_BASE_URL|ANTHROPIC_AUTH_TOKEN|NODE_OPTIONS|--require|LD_PRELOAD|DYLD_INSERT|^source |^\. ' "$f" 2>/dev/null | sed 's/^/      /' | tee -a "$REPORT" >/dev/null
 done
 log "-- Global git config (hooksPath/templateDir/includes are silent-execution vectors) --"
 git config --global --list 2>/dev/null | grep -iE 'hookspath|templatedir|include|credential|url\.' | sed 's/^/  /' | tee -a "$REPORT" >/dev/null || log "  (none)"
@@ -231,7 +285,7 @@ done | sort -u | tee -a "$REPORT" >/dev/null
 
 # ------------------------------------------------- E. SESSION FORENSICS
 hdr "E. SESSION FORENSICS — exfiltration commands executed in the last 60 days"
-PAT='curl [^"]*(-d |--data|-F |-T |--upload-file|-X POST|-X PUT|--json)|wget [^"]*--post|gws gmail \+(send|reply|forward)|\bscp |\brsync [^"]*@|\brclone (copy|sync|move)|aws s3 (cp|sync)|gsutil (cp|rsync)|webhook\.site|hooks\.slack\.com|discord(app)?\.com/api/webhooks|ngrok|pastebin\.com|transfer\.sh|ntfy\.sh|api\.telegram\.org|dangerously-skip-permissions|base64 [^"]*\| *curl|/dev/tcp/'
+PAT='curl [^;|]*(-d ?@|--data|-F ?|-T ?|--upload-file|-X ?(POST|PUT)|--json|\\$\\(|`)|wget [^;|]*--post|gws gmail \\+(send|reply|forward)|mcp__[A-Za-z_]*(send|share|publish|post|push|upload)[A-Za-z_]*|\\bscp |\\brsync [^;|]*@|\\brclone (copy|sync|move)|aws s3 (cp|sync)|gsutil (cp|rsync)|gh gist create|webhook\\.site|hooks\\.slack\\.com|discord(app)?\\.com/api/webhooks|ngrok|pastebin\\.com|transfer\\.sh|ntfy\\.sh|api\\.telegram\\.org|dangerously-skip-permissions|base64 [^;|]*\\| *curl|/dev/tcp/'
 log "  (this section greps every transcript of the last 60 days; on a heavy machine it can take several minutes — transcripts over 80 MB are skipped and listed)"
 if [ -d "$HOME/.claude/projects" ]; then
   find "$HOME/.claude/projects" -name '*.jsonl' -mtime -60 -size +80M 2>/dev/null | sed 's/^/  SKIPPED (>80MB, grep it manually): /' | tee -a "$REPORT" >/dev/null

@@ -22,7 +22,7 @@ else
 fi
 
 echo; echo "-- Hook files present --"
-for f in guard-irreversible.py guard-untrusted-data.py; do
+for f in guard-irreversible.py guard-untrusted-data.py tripwire-run.sh; do
   if [ -f "$CLAUDE_DIR/hooks/$f" ]; then echo "  OK    $f"; else echo "  CRITICAL: MISSING $f"; FAIL=1; fi
 done
 echo; echo "-- Hooks registered in settings.json --"
@@ -32,11 +32,12 @@ done
 echo; echo "-- Fail-closed self-test (garbage input must produce a LOUD response) --"
 for f in guard-irreversible.py guard-untrusted-data.py; do
   out="$(echo 'not json {{{' | python3 "$CLAUDE_DIR/hooks/$f" 2>/dev/null || true)"
-  if [ -n "$out" ]; then echo "  OK    $f (loud on error)"; else echo "  CRITICAL: $f SILENT on error"; FAIL=1; fi
+  if printf '%s' "$out" | grep -qE '"permissionDecision": *"(ask|deny)"|additionalContext'; then echo "  OK    $f (loud on error)"; else echo "  CRITICAL: $f SILENT or permissive on error"; FAIL=1; fi
 done
 
 echo; echo "-- Dangerous permissions in settings --"
-python3 - "$CLAUDE_DIR/settings.json" <<'PYEOF'
+for SF in "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR/settings.local.json"; do [ -f "$SF" ] || continue; echo "  ($SF)"
+python3 - "$SF" <<'PYEOF'
 import json, sys, re
 try: d = json.load(open(sys.argv[1]))
 except Exception as e: print("  (could not read settings.json:", e, ")"); sys.exit(0)
@@ -44,7 +45,12 @@ p = d.get("permissions", {})
 if p.get("defaultMode") in ("bypassPermissions",): print("  CRITICAL: defaultMode = bypassPermissions")
 bad = [r for r in p.get("allow", []) if re.search(r"^Bash$|Bash\(\*?\)|Bash\(\*\)|curl|wget|scp|rclone|\brm\b", str(r))]
 print("  broad allow rules:", bad if bad else "none")
+if d.get("disableAllHooks"): print("  CRITICAL: disableAllHooks is set — every hook is off")
+hk = d.get("hooks", {}) or {}
+pre = [e for e in hk.get("PreToolUse", []) if any("guard-irreversible" in (h.get("command") or "") for h in e.get("hooks", []))]
+if pre and not any(re.search(r"Bash", e.get("matcher", "")) for e in pre): print("  CRITICAL: guard-irreversible is registered but its matcher does not cover Bash")
 PYEOF
+done
 
 echo; echo "-- Memory/instruction drift since baseline --"
 DRIFT="$(git -C "$CLAUDE_DIR" status --porcelain -uall -- projects/ CLAUDE.md 2>/dev/null || true)"
@@ -67,7 +73,7 @@ sigs = [
  (re.compile(r"ignore\s+(all\s+|any\s+)?(previous|prior|above|earlier)|desconsidere\s+(as\s+)?instru", re.I), "override"),
  (re.compile(r"you are now|new instructions|system prompt|developer message|novas instru", re.I), "reframing"),
  (re.compile(r"(never|do not|don'?t|nunca|n[ãa]o)\s+(tell|alert|inform|notify|mention|reveal|conte|avise|informe|mencione|revele)\b.{0,40}\b(user|owner|usu[áa]rio|dono|him|her|them|ele|ela)", re.I), "secrecy"),
- (re.compile("[\u200B\u200C\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]"), "invisible unicode"),
+ (re.compile("[\u200B\u200C\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF\u00AD\U000E0000-\U000E007F]"), "invisible unicode"),
  (re.compile(r"(send|post|upload|forward|envie|poste|encaminhe)\b.{0,60}\b(to|para)\b.{0,60}(https?://|@|webhook)", re.I), "exfiltration"),
  (re.compile(r"dangerously-skip-permissions|bypasspermissions|(always|sempre)\s+(approve|allow|aprove|permita)", re.I), "auto-approval"),
 ]

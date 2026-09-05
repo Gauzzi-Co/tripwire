@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a bypass or vulnerability (private)
+    url: https://github.com/Gauzzi-Co/tripwire/security/advisories/new
+    about: Found a way past a gate, or a way to make a hook fail silently? Please report it privately here, not as a public issue. See SECURITY.md.
+  - name: Read the protocol first
+    url: https://github.com/Gauzzi-Co/tripwire/blob/main/docs/index.html
+    about: The protocol document explains what the hooks do and, just as importantly, what they deliberately do not cover.

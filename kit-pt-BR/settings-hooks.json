@@ -14,11 +14,11 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|mcp__.*",
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|Artifact|mcp__.*",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/guard-irreversible.py\"",
+            "command": "bash \"$HOME/.claude/hooks/tripwire-run.sh\" guard-irreversible.py",
             "timeout": 10
           }
         ]
@@ -26,11 +26,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash|WebFetch|WebSearch|mcp__.*",
+        "matcher": "Bash|Read|WebFetch|WebSearch|mcp__.*",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/guard-untrusted-data.py\"",
+            "command": "bash \"$HOME/.claude/hooks/tripwire-run.sh\" guard-untrusted-data.py",
             "timeout": 10
           }
         ]

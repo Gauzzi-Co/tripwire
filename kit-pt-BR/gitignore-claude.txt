@@ -3,6 +3,12 @@
 *
 !.gitignore
 !settings.json
+!settings.local.json
+!CLAUDE.local.md
+!tripwire.json
+!fence-alarms.log
+!rules/
+!rules/**
 !CLAUDE.md
 !hooks/
 !hooks/**

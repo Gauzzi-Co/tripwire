@@ -22,7 +22,7 @@ else
 fi
 
 echo; echo "-- Arquivos de hook presentes --"
-for f in guard-irreversible.py guard-untrusted-data.py; do
+for f in guard-irreversible.py guard-untrusted-data.py tripwire-run.sh; do
   if [ -f "$CLAUDE_DIR/hooks/$f" ]; then echo "  OK    $f"; else echo "  CRÍTICO: FALTANDO $f"; FAIL=1; fi
 done
 echo; echo "-- Hooks registrados no settings.json --"
@@ -32,11 +32,12 @@ done
 echo; echo "-- Teste de falha-fechada (entrada inválida deve produzir resposta ALTA) --"
 for f in guard-irreversible.py guard-untrusted-data.py; do
   out="$(echo 'not json {{{' | python3 "$CLAUDE_DIR/hooks/$f" 2>/dev/null || true)"
-  if [ -n "$out" ]; then echo "  OK    $f (grita no erro)"; else echo "  CRÍTICO: $f SILENCIOSO no erro"; FAIL=1; fi
+  if printf '%s' "$out" | grep -qE '"permissionDecision": *"(ask|deny)"|additionalContext'; then echo "  OK    $f (grita no erro)"; else echo "  CRÍTICO: $f SILENCIOSO ou permissivo no erro"; FAIL=1; fi
 done
 
 echo; echo "-- Permissões perigosas no settings --"
-python3 - "$CLAUDE_DIR/settings.json" <<'PYEOF'
+for SF in "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR/settings.local.json"; do [ -f "$SF" ] || continue; echo "  ($SF)"
+python3 - "$SF" <<'PYEOF'
 import json, sys, re
 try: d = json.load(open(sys.argv[1]))
 except Exception as e: print("  (não consegui ler settings.json:", e, ")"); sys.exit(0)
@@ -44,7 +45,12 @@ p = d.get("permissions", {})
 if p.get("defaultMode") in ("bypassPermissions",): print("  CRÍTICO: defaultMode = bypassPermissions")
 bad = [r for r in p.get("allow", []) if re.search(r"^Bash$|Bash\(\*?\)|Bash\(\*\)|curl|wget|scp|rclone|\brm\b", str(r))]
 print("  allow amplo:", bad if bad else "nenhum")
+if d.get("disableAllHooks"): print("  CRITICAL: disableAllHooks is set — every hook is off")
+hk = d.get("hooks", {}) or {}
+pre = [e for e in hk.get("PreToolUse", []) if any("guard-irreversible" in (h.get("command") or "") for h in e.get("hooks", []))]
+if pre and not any(re.search(r"Bash", e.get("matcher", "")) for e in pre): print("  CRITICAL: guard-irreversible is registered but its matcher does not cover Bash")
 PYEOF
+done
 
 echo; echo "-- Drift de memórias/instruções desde a baseline --"
 DRIFT="$(git -C "$CLAUDE_DIR" status --porcelain -uall -- projects/ CLAUDE.md 2>/dev/null || true)"
@@ -67,7 +73,7 @@ sigs = [
  (re.compile(r"ignore\s+(all\s+|any\s+)?(previous|prior|above|earlier)|desconsidere\s+(as\s+)?instru", re.I), "override"),
  (re.compile(r"you are now|new instructions|system prompt|developer message|novas instru", re.I), "reenquadramento"),
  (re.compile(r"(never|do not|don'?t|nunca|n[ãa]o)\s+(tell|alert|inform|notify|mention|reveal|conte|avise|informe|mencione|revele)\b.{0,40}\b(user|owner|usu[áa]rio|dono|him|her|them|ele|ela)", re.I), "sigilo"),
- (re.compile("[\u200B\u200C\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]"), "unicode invisível"),
+ (re.compile("[\u200B\u200C\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF\u00AD\U000E0000-\U000E007F]"), "unicode invisível"),
  (re.compile(r"(send|post|upload|forward|envie|poste|encaminhe)\b.{0,60}\b(to|para)\b.{0,60}(https?://|@|webhook)", re.I), "exfiltração"),
  (re.compile(r"dangerously-skip-permissions|bypasspermissions|(always|sempre)\s+(approve|allow|aprove|permita)", re.I), "auto-aprovação"),
 ]
