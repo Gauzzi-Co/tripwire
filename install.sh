@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — installs the Tripwire kit into ~/.claude (macOS / Linux; Windows: Git Bash or WSL).
+# install.sh — installs the AI Tripwire kit into ~/.claude (macOS / Linux; Windows: Git Bash or WSL).
 #
 # What it does:  copies the hooks + the interpreter wrapper, writes ~/.claude/tripwire.json ONCE (your
 #                config: owner e-mails, allowed git remotes) and never overwrites it on upgrades, merges

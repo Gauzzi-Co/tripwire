@@ -1,5 +1,5 @@
 {
-  "_comment": "Tripwire configuration — read by ~/.claude/hooks/guard-irreversible.py at every call. Upgrades never overwrite this file.",
+  "_comment": "AI Tripwire configuration — read by ~/.claude/hooks/guard-irreversible.py at every call. Upgrades never overwrite this file.",
   "owner_emails": ["you@yourcompany.com"],
   "allowed_git_remotes": "github\\.com[:/](YOUR-ORG|your-username)/",
   "gate_secret_reads": true

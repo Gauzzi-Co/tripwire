@@ -1,5 +1,5 @@
 {
-  "_comment": "Configuração do Tripwire — lida por ~/.claude/hooks/guard-irreversible.py a cada chamada. Upgrades nunca sobrescrevem este arquivo.",
+  "_comment": "Configuração do AI Tripwire — lida por ~/.claude/hooks/guard-irreversible.py a cada chamada. Upgrades nunca sobrescrevem este arquivo.",
   "owner_emails": ["voce@suaempresa.com.br"],
   "allowed_git_remotes": "github\\.com[:/](SUA-ORG|seu-usuario)/",
   "gate_secret_reads": true

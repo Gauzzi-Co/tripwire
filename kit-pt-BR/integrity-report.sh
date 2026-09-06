@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# integrity-report.sh — Tripwire · relatório semanal de integridade · edição cliente v1.0
+# integrity-report.sh — AI Tripwire · relatório semanal de integridade · edição cliente v1.0
 # Verifica que as defesas existem, estão registradas e falham fechado; mostra o que mudou
 # nas memórias/instruções desde a última baseline (git em ~/.claude) e procura assinaturas
 # de injeção SÓ no conteúdo novo. Exit 1 se houver problema CRÍTICO.

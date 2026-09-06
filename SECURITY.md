@@ -1,6 +1,6 @@
 # Security policy
 
-Tripwire is a defense-in-depth kit. Bypasses are expected to exist — the point of reporting them is to close the ones that matter and to document the ones that cannot be closed by a hook.
+AI Tripwire is a defense-in-depth kit. Bypasses are expected to exist — the point of reporting them is to close the ones that matter and to document the ones that cannot be closed by a hook.
 
 ## Reporting a bypass or vulnerability
 

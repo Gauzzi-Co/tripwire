@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-guard-untrusted-data.py — Tripwire · Layer B (PostToolUse) · edição open-source Gauzzi & Co v1.1
+guard-untrusted-data.py — AI Tripwire · Layer B (PostToolUse) · edição open-source Gauzzi & Co v1.1
 
 THE FENCE: after ANY tool that returns third-party content (web, email, calendar, transcripts,
 shared workspaces, any MCP server, and — new in v1.1 — files read from disk that are typical
