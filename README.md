@@ -1,12 +1,12 @@
-# Tripwire
+# AI Tripwire
 
 **A tripwire layer for Claude Code against prompt injection and poisoned memory: fail-closed hooks that put an approval prompt in front of the outbound and self-modifying actions an agent reaches through the shell and its tools, a deterministic scanner for poisoned instruction files, and the protocol that goes with them.**
 
 Your AI coding agent reads the web, your email, issues, READMEs and tool descriptions. Any of that text can be written *for the agent*, not for you. If it manages to get written into an instruction or memory file (`CLAUDE.md`, memories, hooks, `settings.json`), the attack stops being an event and becomes a **state**: every future session is born compromised — and the instruction usually tells the agent not to mention it.
 
-Tripwire is what we run in our own operation at [Gauzzi & Co](https://gauzziconsulting.com), generalized so anyone can install it. It is **not** a sandbox and it does not try to detect every injection (nobody can — see [Willison's lethal trifecta](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)). It makes the common outbound and self-modifying actions *visible and approval-gated*, makes every persistent change *evident*, and treats signature detection as a bonus. Run it **on top of** a sandbox and a network egress allowlist, not instead of them.
+AI Tripwire is what we run in our own operation at [Gauzzi & Co](https://gauzziconsulting.com), generalized so anyone can install it. It is **not** a sandbox and it does not try to detect every injection (nobody can — see [Willison's lethal trifecta](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/)). It makes the common outbound and self-modifying actions *visible and approval-gated*, makes every persistent change *evident*, and treats signature detection as a bonus. Run it **on top of** a sandbox and a network egress allowlist, not instead of them.
 
-> **Read the protocol first:** [English](https://gauzzi-co.github.io/tripwire/) · [Português](https://gauzzi-co.github.io/tripwire/protocolo-pt-BR.html) (sources in [`docs/`](docs/)). It explains the attack chain, 13 documented real-world cases with primary sources, the attack surfaces and leak channels, the full scan protocol, how each hook decides — and what it deliberately does not cover.
+> **Read the protocol first:** [English](https://gauzzi-co.github.io/ai-tripwire/) · [Português](https://gauzzi-co.github.io/ai-tripwire/protocolo-pt-BR.html) (sources in [`docs/`](docs/)). It explains the attack chain, 13 documented real-world cases with primary sources, the attack surfaces and leak channels, the full scan protocol, how each hook decides — and what it deliberately does not cover.
 
 ## What it does
 
@@ -31,12 +31,12 @@ The gate is a regex over the command text the agent submits. It gates the *spell
 - **DNS** is gated only when the query is built from local data in the same command; **image-URL exfiltration** is detected as a signature, not blocked.
 - **The harness itself**: a hook that exceeds its 10-second timeout is treated as a pass; hooks apply to **Claude Code only** (the scanner covers the other tools, the hooks do not); hooks are editable by anyone with shell access — including an agent that was *approved* to edit them.
 
-**Compensating controls, in order:** run the agent in a **sandbox or container** with no credentials it does not need; put an **egress allowlist** in front of it (firewall, proxy, DNS filtering, Claude Code's own network sandbox) — a GET to `evil.example` is stopped at the network, not by string-matching `curl`; use Claude Code's `permissions.deny` rules for the hard "never" cases; make the hook files **immutable** once installed (`chmod 444`, macOS `chflags uchg`; the installer makes the alarm log append-only) so even an approved write cannot silently replace them; for teams, enforce with **managed settings** rather than per-user hooks; ship `fence-alarms.log` to your SIEM. Tripwire is the visibility and speed-bump layer *between* those controls and the model's judgment.
+**Compensating controls, in order:** run the agent in a **sandbox or container** with no credentials it does not need; put an **egress allowlist** in front of it (firewall, proxy, DNS filtering, Claude Code's own network sandbox) — a GET to `evil.example` is stopped at the network, not by string-matching `curl`; use Claude Code's `permissions.deny` rules for the hard "never" cases; make the hook files **immutable** once installed (`chmod 444`, macOS `chflags uchg`; and `chflags uappnd` on the alarm log — the installer prints both commands) so even an approved write cannot silently replace them; for teams, enforce with **managed settings** rather than per-user hooks; ship `fence-alarms.log` to your SIEM. AI Tripwire is the visibility and speed-bump layer *between* those controls and the model's judgment.
 
 ## Quick start
 
 ```bash
-git clone https://github.com/Gauzzi-Co/tripwire.git && cd tripwire
+git clone https://github.com/Gauzzi-Co/ai-tripwire.git && cd ai-tripwire
 ./install.sh
 ```
 
@@ -72,7 +72,7 @@ Each gate is a `(regex, reason)` pair over the command text; the decision is col
 pip install -r requirements-dev.txt && pytest -q
 ```
 
-Behaviour tests per kit: 55 gate cases (including every bypass demonstrated in the pre-publication red-team review), 21 fence cases (including a false-positive corpus), config override, fail-closed, installer smoke tests (twice in a row; refusal to commit into a parent repository), and a check that the two editions share identical regex sets.
+Behaviour tests per kit: 65 gate cases (including every bypass demonstrated in the pre-publication red-team review), 21 fence cases (including a false-positive corpus), config override, fail-closed, installer smoke tests (twice in a row; refusal to commit into a parent repository), and a check that the two editions share identical regex sets.
 
 ## Layout
 

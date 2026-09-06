@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tripwire-run.sh — interpreter-resolving wrapper for the Tripwire hooks.
+# tripwire-run.sh — interpreter-resolving wrapper for the AI Tripwire hooks.
 # Claude Code treats a hook command that cannot start (e.g. `python3` not on PATH: Windows ships
 # python.exe, GUI launches have a minimal PATH) as a non-blocking error and RUNS THE TOOL — fail-open.
 # This wrapper closes that gap: it finds python3/python, and if neither exists it emits the

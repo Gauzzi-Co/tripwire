@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Tripwire. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow SemVer.
+All notable changes to AI Tripwire. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow SemVer.
 
 ## [1.1.0] — 2026-09-05
 

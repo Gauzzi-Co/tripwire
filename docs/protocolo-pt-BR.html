@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Protocolo Tripwire — Memórias Envenenadas &amp; Prompt Injection · Gauzzi &amp; Co</title>
+<title>Protocolo AI Tripwire — Memórias Envenenadas &amp; Prompt Injection · Gauzzi &amp; Co</title>
 
 
 <style>
@@ -110,7 +110,7 @@ footer .wordmark{font-size:1.1rem;margin-bottom:10px}footer a{color:var(--teal)}
   <div class="brandbar"><div class="wordmark">GAUZZI <b>&amp;</b> CO</div>
     <div class="meta">IA aplicada &amp; Segurança operacional<br>Edição open-source</div></div>
   <div class="hero-inner">
-    <span class="tag" style="color:var(--teal)">Protocolo de segurança · Tripwire v1.0</span>
+    <span class="tag" style="color:var(--teal)">Protocolo de segurança · AI Tripwire v1.1</span>
     <h1>Memórias envenenadas: como detectar, limpar e blindar o seu Claude</h1><div class="accent-line"></div>
     <p class="sub">Prompt injection que se grava na memória do assistente, se esconde de você e vaza dados e propriedade intelectual — o que é, como acontece, como varrer sua máquina inteira e como instalar tripwires para que não aconteça de novo.</p>
     <div class="for">
@@ -128,7 +128,7 @@ footer .wordmark{font-size:1.1rem;margin-bottom:10px}footer a{color:var(--teal)}
   <li><a href="#s3">03 · Superfícies de ataque</a></li>
   <li><a href="#s4">04 · Canais de vazamento</a></li>
   <li><a href="#s5">05 · Protocolo de varredura</a></li>
-  <li><a href="#s6">06 · Tripwire — os hooks</a></li>
+  <li><a href="#s6">06 · AI Tripwire — os hooks</a></li>
   <li><a href="#s7">07 · Operação segura no dia a dia</a></li>
   <li><a href="#s8">08 · Rotina semanal</a></li>
   <li><a href="#s9">09 · Glossário</a></li>
@@ -273,7 +273,7 @@ footer .wordmark{font-size:1.1rem;margin-bottom:10px}footer a{color:var(--teal)}
 
   <div class="codeblock"><div class="ch"><span>scan-instrucoes.sh — Fase 1 · determinístico, somente leitura</span><button data-copy>Copiar</button></div><pre>#!/usr/bin/env bash
 # scan-instrucoes.sh — Varredura de instruções e memórias envenenadas
-# Protocolo Tripwire · Gauzzi &amp; Co · edição cliente v1.0
+# Protocolo AI Tripwire · Gauzzi &amp; Co · edição cliente v1.0
 #
 # O QUE FAZ: inventaria TODOS os arquivos que dão instruções persistentes ao seu
 # assistente de IA (CLAUDE.md, memórias, agents, skills, hooks, settings, MCP),
@@ -632,7 +632,7 @@ mv_q "$HOME/projeto/.claude/agents/helper.md"</pre></div></li>
 
 <!-- ============================================================ 06 -->
 <section id="s6"><div class="wrap">
-  <div class="sec-head"><span class="sec-num">06</span><h2>Tripwire — os hooks que usamos, em edição para você</h2></div>
+  <div class="sec-head"><span class="sec-num">06</span><h2>AI Tripwire — os hooks que usamos, em edição para você</h2></div>
   <p class="lead">Hooks do Claude Code são programas que rodam <strong>fora do modelo</strong>, antes (<code>PreToolUse</code>) ou depois (<code>PostToolUse</code>) de cada ferramenta. Eles não leem a conversa, não podem ser convencidos, e decidem por regra: <code>allow</code>, <code>ask</code> (abre um pedido de aprovação para você) ou <code>deny</code>. É a diferença entre pedir ao modelo que se comporte e impor a fronteira.</p>
 
   <div class="grid2">
@@ -669,7 +669,7 @@ mv_q "$HOME/projeto/.claude/agents/helper.md"</pre></div></li>
   <h3>Os arquivos</h3>
   <div class="codeblock"><div class="ch"><span>~/.claude/hooks/guard-irreversible.py — Camada A (PreToolUse)</span><button data-copy>Copiar</button></div><pre>#!/usr/bin/env python3
 &quot;&quot;&quot;
-guard-irreversible.py — Tripwire · Layer A (PreToolUse) · edição open-source Gauzzi &amp; Co v1.1
+guard-irreversible.py — AI Tripwire · Layer A (PreToolUse) · edição open-source Gauzzi &amp; Co v1.1
 
 Forces an explicit approval prompt (&quot;ask&quot;) BEFORE any action that:
   (1) sends data out — email, file sharing, HTTP POST/upload, ANY network request that carries
@@ -1098,7 +1098,7 @@ except Exception as e:
 </pre></div>
   <div class="codeblock"><div class="ch"><span>~/.claude/hooks/guard-untrusted-data.py — Camada B (PostToolUse)</span><button data-copy>Copiar</button></div><pre>#!/usr/bin/env python3
 &quot;&quot;&quot;
-guard-untrusted-data.py — Tripwire · Layer B (PostToolUse) · edição open-source Gauzzi &amp; Co v1.1
+guard-untrusted-data.py — AI Tripwire · Layer B (PostToolUse) · edição open-source Gauzzi &amp; Co v1.1
 
 THE FENCE: after ANY tool that returns third-party content (web, email, calendar, transcripts,
 shared workspaces, any MCP server, and — new in v1.1 — files read from disk that are typical
@@ -1367,7 +1367,7 @@ except Exception:
 }
 </pre></div>
   <div class="codeblock short"><div class="ch"><span>~/.claude/hooks/tripwire-run.sh — wrapper que resolve o interpretador (falha fechada se não houver python)</span><button data-copy>Copiar</button></div><pre>#!/usr/bin/env bash
-# tripwire-run.sh — interpreter-resolving wrapper for the Tripwire hooks.
+# tripwire-run.sh — interpreter-resolving wrapper for the AI Tripwire hooks.
 # Claude Code treats a hook command that cannot start (e.g. `python3` not on PATH: Windows ships
 # python.exe, GUI launches have a minimal PATH) as a non-blocking error and RUNS THE TOOL — fail-open.
 # This wrapper closes that gap: it finds python3/python, and if neither exists it emits the
@@ -1389,7 +1389,7 @@ esac
 exit 0
 </pre></div>
   <div class="codeblock short"><div class="ch"><span>~/.claude/tripwire.json — sua configuração (criada uma vez, nunca sobrescrita)</span><button data-copy>Copiar</button></div><pre>{
-  &quot;_comment&quot;: &quot;Configuração do Tripwire — lida por ~/.claude/hooks/guard-irreversible.py a cada chamada. Upgrades nunca sobrescrevem este arquivo.&quot;,
+  &quot;_comment&quot;: &quot;Configuração do AI Tripwire — lida por ~/.claude/hooks/guard-irreversible.py a cada chamada. Upgrades nunca sobrescrevem este arquivo.&quot;,
   &quot;owner_emails&quot;: [&quot;voce@suaempresa.com.br&quot;],
   &quot;allowed_git_remotes&quot;: &quot;github\\.com[:/](SUA-ORG|seu-usuario)/&quot;,
   &quot;gate_secret_reads&quot;: true
@@ -1421,7 +1421,7 @@ exit 0
 !projects/*/memory/**
 </pre></div>
   <div class="codeblock"><div class="ch"><span>~/.claude/hooks/integrity-report.sh — rotina semanal</span><button data-copy>Copiar</button></div><pre>#!/usr/bin/env bash
-# integrity-report.sh — Tripwire · relatório semanal de integridade · edição cliente v1.0
+# integrity-report.sh — AI Tripwire · relatório semanal de integridade · edição cliente v1.0
 # Verifica que as defesas existem, estão registradas e falham fechado; mostra o que mudou
 # nas memórias/instruções desde a última baseline (git em ~/.claude) e procura assinaturas
 # de injeção SÓ no conteúdo novo. Exit 1 se houver problema CRÍTICO.
@@ -1614,7 +1614,7 @@ exit &quot;$FAIL&quot;
   <p style="color:rgba(255,255,255,.78);max-width:70ch">Este protocolo é o que usamos na própria operação da Gauzzi &amp; Co, adaptado para qualquer pessoa instalar em uma tarde. Dúvidas, achados que você não sabe classificar, ou um alarme que não faz sentido: abra um issue no repositório — e reporte bypasses em privado (veja SECURITY.md).</p>
   <div class="disc"><strong style="color:rgba(255,255,255,.8)">Nota de escopo e responsabilidade.</strong> Material educacional de segurança operacional para usuários de assistentes de IA. Os scripts são fornecidos como estão: leia-os antes de rodar, teste em uma pasta de exemplo, e adapte as listas ao seu ambiente. Filtros por expressão regular produzem falsos positivos e podem não capturar comandos ofuscados — por isso o desenho é em camadas e a rotina é periódica. Se houver evidência de exfiltração real, trate como incidente e envolva um profissional de resposta a incidentes; este documento é prevenção e triagem, não forense. Se dados pessoais ou de clientes podem ter saído dos seus sistemas, podem valer deveres de notificação de incidente (LGPD art. 48 — "prazo razoável" definido pela ANPD, hoje 3 dias úteis; GDPR art. 33 — 72 horas à autoridade) — fale com um advogado cedo.</div>
   <div class="src"><strong style="color:rgba(255,255,255,.7)">Referências dos casos citados:</strong> Rehberger, "SpAIware" (2024) · Pillar Security, "Rules File Backdoor" (2025) · Invariant Labs, "MCP Tool Poisoning" e "GitHub MCP exploited" (2025) · Aim Security, "EchoLeak" CVE-2025-32711 (2025) · Zenity Labs, "AgentFlayer" (Black Hat USA 2025) · SafeBreach, "Invitation Is All You Need" (2025) · PromptArmor, "Slack AI data exfiltration" (2024) · Rehberger, "GitHub Copilot RCE via prompt injection" CVE-2025-53773 (2025) · Koi Security, "postmark-mcp" (2025) · Cursor advisory CVE-2026-22708 (2026) · Oasis Security, "Claudy Day" (2026) · Guan et al., "Comment and Control" (SecurityWeek, 2026) · Wiz Research, "Attacks on AI Infrastructure: 90-Day Honeypot Telemetry" e "Model Context Protocol Security" (2026) · Simon Willison, "The lethal trifecta for AI agents" (2025) · CVE-2025-30066 (tj-actions/changed-files) · Documentação de hooks do Claude Code (Anthropic).</div>
-  <p style="margin-top:18px;color:rgba(255,255,255,.45);font-size:.78rem">© 2026 Gauzzi &amp; Co · Edição open-source · Preparado por Lucas Gauzzi · Tripwire v1.1 · Texto licenciado <a href="https://creativecommons.org/licenses/by/4.0/deed.pt-br" style="color:rgba(255,255,255,.6)">CC BY 4.0</a> (atribuição: Lucas Gauzzi · Gauzzi &amp; Co); código MIT</p>
+  <p style="margin-top:18px;color:rgba(255,255,255,.45);font-size:.78rem">© 2026 Gauzzi &amp; Co · Edição open-source · Preparado por Lucas Gauzzi · AI Tripwire v1.1 · Texto licenciado <a href="https://creativecommons.org/licenses/by/4.0/deed.pt-br" style="color:rgba(255,255,255,.6)">CC BY 4.0</a> (atribuição: Lucas Gauzzi · Gauzzi &amp; Co); código MIT</p>
 </div></footer>
 
 <script>

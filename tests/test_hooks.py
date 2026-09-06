@@ -1,4 +1,4 @@
-"""Behaviour tests for both Tripwire kits (English `kit/`, Portuguese `kit-pt-BR/`).
+"""Behaviour tests for both AI Tripwire kits (English `kit/`, Portuguese `kit-pt-BR/`).
 
 Each case feeds a fake Claude Code tool-call JSON into a hook over stdin and checks the
 decision. Nothing is executed or sent; HOME is redirected to a temp dir so the alarm log

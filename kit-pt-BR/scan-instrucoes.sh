@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scan-instrucoes.sh — Varredura de instruções e memórias envenenadas
-# Protocolo Tripwire · Gauzzi & Co · edição cliente v1.0
+# Protocolo AI Tripwire · Gauzzi & Co · edição cliente v1.0
 #
 # O QUE FAZ: inventaria TODOS os arquivos que dão instruções persistentes ao seu
 # assistente de IA (CLAUDE.md, memórias, agents, skills, hooks, settings, MCP),

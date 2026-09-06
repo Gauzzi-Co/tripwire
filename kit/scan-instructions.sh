@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scan-instructions.sh — Poisoned instruction & memory scan
-# Tripwire Protocol · Gauzzi & Co · client edition v1.0
+# AI AI Tripwire Protocol · Gauzzi & Co · client edition v1.0
 #
 # WHAT IT DOES: inventories EVERY file that gives persistent instructions to your
 # AI assistant (CLAUDE.md, memories, agents, skills, hooks, settings, MCP configs),

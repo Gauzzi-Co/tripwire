@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-guard-irreversible.py — Tripwire · Layer A (PreToolUse) · edição open-source Gauzzi & Co v1.1
+guard-irreversible.py — AI Tripwire · Layer A (PreToolUse) · edição open-source Gauzzi & Co v1.1
 
 Forces an explicit approval prompt ("ask") BEFORE any action that:
   (1) sends data out — email, file sharing, HTTP POST/upload, ANY network request that carries
